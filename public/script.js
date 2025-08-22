@@ -40,11 +40,13 @@ function stopCamera() {
 
 async function playTrack(track) {
   if (!track?.url) {
-    setStatus("No playable URL. Try again.");
+    setStatus("No playable song. Try again.");
+    log("No playable URL for track:", track);
     return;
   }
   log("Playing track:", track.title, track.url);
   musicPlayer.src = track.url; // Always set new song
+  musicPlayer.load(); // Force reload
   try {
     await musicPlayer.play();
     setStatus(`Playing: ${track.title || 'Song'}`);
@@ -97,14 +99,16 @@ async function changeSongForEmotion(emotion) {
   stopCamera();
 }
 
-// Detect emotion once
 async function detectOnce() {
-  if (!modelsLoaded || !video.srcObject) return false;
+  if (!modelsLoaded || !video.srcObject) {
+    log("Models or video not ready");
+    return false;
+  }
 
   try {
     const emotions = [];
     const startTime = Date.now();
-    const duration = 10000; // Increased to 10 seconds
+    const duration = 10000; // 10 seconds for better detection
 
     while (Date.now() - startTime < duration) {
       let detections;
@@ -149,15 +153,15 @@ async function detectOnce() {
                          emotions[emotions.length - 1] || "neutral";
     currentEmotion = finalEmotion;
     setStatus(`Emotion: ${finalEmotion}`);
+    log("Final emotion:", finalEmotion);
     return finalEmotion;
   } catch (err) {
-    log("Detection error:", err);
+    log("Detection error:", err.message);
     setStatus("Detection error. You can still select a test mood.");
     return false;
   }
 }
 
-// Initialize everything
 async function startAll() {
   try {
     setStatus("Loading models...");
@@ -191,13 +195,12 @@ async function startAll() {
       stopCamera();
     }
   } catch (err) {
-    log("Init error:", err);
+    log("Init error:", err.message);
     setStatus("Camera or models failed. Use Test Mood to play music.");
     stopCamera();
   }
 }
 
-// Event listeners
 startBtn.addEventListener("click", async () => {
   await startAll();
 });
@@ -224,7 +227,7 @@ changeSongBtn.addEventListener("click", async () => {
         stopCamera();
       }
     } catch (err) {
-      log("Camera error:", err);
+      log("Camera error:", err.message);
       setStatus("Camera failed. Use Test Mood to play music.");
       stopCamera();
     }
