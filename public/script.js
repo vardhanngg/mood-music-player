@@ -14,7 +14,6 @@ let currentTrackId = null;
 let useTinyFace = true;
 let modelsLoaded = false;
 
-// Map face emotion → mood for music search
 const emotionMap = {
   happy: "party",
   sad: "romantic",
@@ -41,22 +40,18 @@ function stopCamera() {
 }
 
 async function playTrack(track) {
-  if (!track?.url) {
+  if (!track?.audioUrl) {
     setStatus("No playable URL. Try again.");
     return;
   }
 
-  // Always update the currentTrackId to force the player to reload the track
-  currentTrackId = track.id || track.url;
+  currentTrackId = track.id || track.audioUrl;
 
-  // Check if the track is already playing
-  if (musicPlayer.src !== track.url || musicPlayer.paused) {
-    musicPlayer.src = track.url;
+  if (musicPlayer.src !== track.audioUrl || musicPlayer.paused) {
+    musicPlayer.src = track.audioUrl;
     try {
       await musicPlayer.play();
-      if (audioCtx?.state === "suspended") {
-        await audioCtx.resume();
-      }
+      if (audioCtx?.state === "suspended") await audioCtx.resume();
     } catch (err) {
       console.warn("Autoplay blocked, waiting for user gesture.", err.message);
       setStatus("Tap the Play button to start audio.");
@@ -64,23 +59,18 @@ async function playTrack(track) {
   }
 }
 
-
 async function fetchTrackForMood(mood) {
   try {
     const res = await fetch(`${SONG_BY_MOOD_ENDPOINT}?mood=${encodeURIComponent(mood)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    return data.track; // <-- must match backend response
+    return data.track; // Must match backend response (track.audioUrl exists now)
   } catch (err) {
     console.error("songByMood fetch error:", err);
     return null;
   }
 }
 
-
-
-
-// Change song based on emotion/mood
 async function changeSongForEmotion(emotion) {
   const mapped = emotionMap[emotion] || "pop";
   setStatus(`Emotion: ${emotion} → mood: ${mapped} (fetching song)`);
@@ -88,6 +78,7 @@ async function changeSongForEmotion(emotion) {
   const track = await fetchTrackForMood(mapped);
 
   if (!track || !track.audioUrl) {
+    // Only fallback if API really fails
     const fallback = {
       party: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
       romantic: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
@@ -97,13 +88,15 @@ async function changeSongForEmotion(emotion) {
       instrumental: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
       calm: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
     };
-    await playTrack({ id: mapped, url: fallback[mapped] || fallback.pop });
+    await playTrack({ id: mapped, audioUrl: fallback[mapped] || fallback.pop });
   } else {
-    await playTrack({ id: track.id, url: track.audioUrl });
+    await playTrack(track);
   }
 
   stopCamera();
 }
+
+// The rest of detectOnce(), startAll(), event listeners remain unchanged
 
 // Detect emotion once
 async function detectOnce() {
