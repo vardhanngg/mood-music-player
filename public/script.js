@@ -40,20 +40,18 @@ function stopCamera() {
   }
 }
 
-// Play track helper
 async function playTrack(track) {
   if (!track?.url) {
     setStatus("No playable URL. Try again.");
     return;
   }
-  if (track.id && track.id === currentTrackId && !musicPlayer.paused) {
-    return; // Skip if already playing
-  }
 
   musicPlayer.pause();
   musicPlayer.src = "";
   musicPlayer.load();
-  currentTrackId = track.id || track.url;
+
+  // Use URL as unique identifier
+  currentTrackId = track.url;
   musicPlayer.src = track.url;
 
   try {
@@ -68,18 +66,25 @@ async function playTrack(track) {
   }
 }
 
-// Fetch track from backend
 async function fetchTrackForMood(mood) {
   try {
     const res = await fetch(`${SONG_BY_MOOD_ENDPOINT}?mood=${encodeURIComponent(mood)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    return data; // Return full object with audioUrl
+    // Backend returns { audioUrl, title, id, artist, image }
+    return {
+      url: data.audioUrl,
+      id: data.id,
+      title: data.title,
+      artist: data.artist,
+      image: data.image,
+    };
   } catch (err) {
     console.error("songByMood fetch error:", err);
     return null;
   }
 }
+
 
 // Change song based on emotion/mood
 async function changeSongForEmotion(emotion) {
