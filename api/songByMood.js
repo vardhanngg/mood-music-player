@@ -1,4 +1,5 @@
-import axios from "axios";
+// ✅ Do this
+const axios = require('axios'); // or `import axios from 'axios';` if using ES modules
 
 export default async function handler(req, res) {
   try {
