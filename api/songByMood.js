@@ -4,7 +4,11 @@ export default async function handler(req, res) {
   try {
     const { mood } = req.query;
 
-    // Step 1 – Search songs by mood using JioSaavn API
+    if (!mood) {
+      return res.status(400).json({ error: "Mood is required" });
+    }
+
+    // Step 1 – Search songs by mood
     const searchUrl = `https://jiosaavn-api-ruddy.vercel.app/search/songs?query=${encodeURIComponent(mood)}`;
     const searchRes = await axios.get(searchUrl);
 
@@ -12,32 +16,32 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: "No songs found for this mood" });
     }
 
-    // Step 2 – Pick the first song
+    // Pick the first song
     const song = searchRes.data.data[0];
 
-    // Step 3 – Fetch detailed info to get playable link
+    // Step 2 – Fetch detailed info
     const songDetailsUrl = `https://jiosaavn-api-ruddy.vercel.app/songs?id=${song.id}`;
     const songDetailsRes = await axios.get(songDetailsUrl);
     const songDetails = songDetailsRes.data.data[0];
 
-    // Step 4 – Get highest quality link
-    const audioUrl =
-      songDetails.downloadUrl?.[songDetails.downloadUrl.length - 1]?.link || null;
+    // Step 3 – Always use the highest quality download URL
+    const audioUrl = songDetails.downloadUrl?.slice(-1)[0]?.link || null;
 
     if (!audioUrl) {
-      return res.status(500).json({ error: "Failed to fetch playable link" });
+      return res.status(500).json({ error: "Playable link not found" });
     }
 
+    // Send response
     res.status(200).json({
       id: songDetails.id,
       title: songDetails.name,
       artist: songDetails.primaryArtists,
-      image: songDetails.image?.[2]?.link,
-      audioUrl: audioUrl
+      image: songDetails.image?.slice(-1)[0]?.link, // highest res image
+      audioUrl
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching song:", error.message);
     res.status(500).json({ error: "Error fetching song" });
   }
 }
