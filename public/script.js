@@ -45,10 +45,8 @@ async function playTrack(track) {
     setStatus("No playable URL. Try again.");
     return;
   }
-
   // Always update the currentTrackId to force the player to reload the track
   currentTrackId = track.id || track.url;
-
   // Check if the track is already playing
   if (musicPlayer.src !== track.url || musicPlayer.paused) {
     musicPlayer.src = track.url;
