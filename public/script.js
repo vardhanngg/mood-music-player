@@ -1,132 +1,337 @@
-const startBtn = document.getElementById('startBtn');
-const changeSongBtn = document.getElementById('changeSongBtn');
-const video = document.getElementById('video');
-const statusDiv = document.getElementById('status');
-const songPlayer = document.getElementById('songPlayer');
-// const canvas = document.getElementById('visualizer'); // Visualizer canvas
-// const ctx = canvas.getContext('2d'); // Visualizer context
+import { SEARCH_ENDPOINT, SONG_BY_MOOD_ENDPOINT } from "./config.js";
 
-let currentMood = '';
-let playlist = [];
-let currentSongIndex = 0;
-let stream;
-let isDetecting = false;
-// let audioContext, analyser, source, dataArray; // Visualizer vars
+const startBtn = document.getElementById("startBtn");
+const video = document.getElementById("video");
+const overlay = document.getElementById("overlay");
+const emotionDisplay = document.getElementById("emotion-display");
+const musicPlayer = document.getElementById("musicPlayer");
+const visualizerCanvas = document.getElementById("visualizer");
+const changeSongBtn = document.getElementById("changeSongBtn");
+const testMoodEl = document.getElementById("testMood");
+const vctx = visualizerCanvas.getContext("2d");
 
-async function startEmotionDetection() {
-    if (isDetecting) return;
-    isDetecting = true;
-    statusDiv.innerText = 'Starting camera...';
+let audioCtx, analyser, sourceNode;
+let currentEmotion = null;
+let currentTrackId = null;
+let useTinyFace = true;
+let modelsLoaded = false;
+let isVisualizerStarting = false; // Flag to prevent concurrent visualizer starts
 
-    try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = stream;
+// Map face emotion → mood for music search
+const emotionMap = {
+  happy: "party",
+  sad: "romantic",
+  angry: "rock",
+  neutral: "pop",
+  surprised: "upbeat",
+  disgusted: "instrumental",
+  fearful: "calm",
+};
 
-        statusDiv.innerText = 'Detecting emotion...';
-
-        const interval = setInterval(async () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            const imageData = canvas.toDataURL('image/jpeg');
-
-            try {
-                const response = await fetch('http://localhost:5000/detect_emotion', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: imageData })
-                });
-                const data = await response.json();
-
-                if (data.emotion && data.emotion !== currentMood) {
-                    currentMood = data.emotion;
-                    statusDiv.innerText = `Detected mood: ${currentMood}`;
-                    fetchSongs(currentMood);
-                }
-            } catch (error) {
-                console.error('Error detecting emotion:', error);
-            }
-        }, 5000);
-
-    } catch (error) {
-        console.error('Camera error:', error);
-        statusDiv.innerText = 'Failed to start camera';
-        isDetecting = false;
-    }
+function log(...args) {
+  console.log("[app]", ...args);
 }
 
-async function fetchSongs(mood) {
-    statusDiv.innerText = `Fetching songs for ${mood}...`;
-
-    try {
-        const response = await fetch(`http://localhost:5000/get_songs?mood=${mood}`);
-        const data = await response.json();
-
-        if (data.songs && data.songs.length > 0) {
-            playlist = data.songs;
-            currentSongIndex = 0;
-            playSong();
-        } else {
-            statusDiv.innerText = `No songs found for ${mood}`;
-        }
-    } catch (error) {
-        console.error('Error fetching songs:', error);
-        statusDiv.innerText = 'Failed to fetch songs';
-    }
+// UI helpers
+function setStatus(text) {
+  emotionDisplay.textContent = text;
 }
 
-function playSong() {
-    if (playlist.length === 0) return;
-
-    songPlayer.src = playlist[currentSongIndex];
-    songPlayer.play()
-        .then(() => {
-            statusDiv.innerText = `Now playing: ${playlist[currentSongIndex]}`;
-            // startVisualizer(); // removed visualizer
-        })
-        .catch(error => console.error('Playback error:', error));
+// Stop camera stream
+function stopCamera() {
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach((track) => track.stop());
+    video.srcObject = null;
+  }
 }
 
-function changeSong() {
-    if (playlist.length === 0) return;
-    currentSongIndex = (currentSongIndex + 1) % playlist.length;
-    playSong();
-}
-
-/*
-// Visualizer removed
+// Audio visualizer
 function startVisualizer() {
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        source = audioContext.createMediaElementSource(songPlayer);
-        analyser = audioContext.createAnalyser();
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
-        analyser.fftSize = 256;
-        const bufferLength = analyser.frequencyBinCount;
-        dataArray = new Uint8Array(bufferLength);
+  if (isVisualizerStarting) return; // Prevent concurrent calls
+  isVisualizerStarting = true;
+
+  try {
+    // Initialize AudioContext if not already created
+    if (!audioCtx || audioCtx.state === "closed") {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
 
-    function draw() {
-        requestAnimationFrame(draw);
-        analyser.getByteFrequencyData(dataArray);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        const barWidth = (canvas.width / dataArray.length) * 2.5;
-        let x = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-            const barHeight = dataArray[i];
-            ctx.fillStyle = 'rgb(' + (barHeight + 100) + ',50,50)';
-            ctx.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight / 2);
-            x += barWidth + 1;
-        }
+    // Clean up previous analyser and sourceNode
+    if (sourceNode) {
+      sourceNode.disconnect();
+      sourceNode = null;
     }
+    if (analyser) {
+      analyser.disconnect();
+      analyser = null;
+    }
+
+    analyser = audioCtx.createAnalyser();
+    sourceNode = audioCtx.createMediaElementSource(musicPlayer);
+    sourceNode.connect(analyser);
+    analyser.connect(audioCtx.destination);
+
+    analyser.fftSize = 256;
+    const bufLen = analyser.frequencyBinCount;
+    const data = new Uint8Array(bufLen);
+
+    const draw = () => {
+      requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(data);
+
+      vctx.fillStyle = "#000";
+      vctx.fillRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+
+      const barW = (visualizerCanvas.width / bufLen) * 2.4;
+      let x = 0;
+      for (let i = 0; i < bufLen; i++) {
+        const h = data[i];
+        vctx.fillStyle = `rgb(${h + 80}, 60, 170)`;
+        vctx.fillRect(x, visualizerCanvas.height - h / 1.8, barW, h / 1.8);
+        x += barW + 1;
+      }
+    };
     draw();
+  } catch (err) {
+    console.error("Visualizer error:", err);
+    setStatus(`Visualizer error: ${err.message}`);
+  } finally {
+    isVisualizerStarting = false; // Reset flag
+  }
 }
-*/
 
-startBtn.addEventListener('click', startEmotionDetection);
-changeSongBtn.addEventListener('click', changeSong);
+// Play track helper
+async function playTrack(track) {
+  if (!track?.url) {
+    setStatus("No playable URL. Try again.");
+    return;
+  }
+  if (track.id && track.id === currentTrackId && !musicPlayer.paused) {
+    return; // Skip if the same track is already playing
+  }
+
+  // Fully reset musicPlayer state
+  musicPlayer.pause();
+  musicPlayer.src = "";
+  musicPlayer.load(); // Reset the media element
+  currentTrackId = track.id || track.url;
+  musicPlayer.src = track.url;
+
+  try {
+    await musicPlayer.play();
+    if (audioCtx?.state === "suspended") {
+      await audioCtx.resume();
+    }
+    startVisualizer();
+  } catch (err) {
+    console.warn("Autoplay blocked, waiting for user gesture.", err.message);
+    setStatus("Tap the Play button to start audio.");
+  }
+}
+
+// Resolve mood → track via backend
+async function fetchTrackForMood(mood) {
+  try {
+    const res = await fetch(
+      `${SONG_BY_MOOD_ENDPOINT}?mood=${encodeURIComponent(mood)}`
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data.track;
+  } catch (err) {
+    console.error("songByMood fetch error:", err);
+    return null;
+  }
+}
+
+async function changeSongForEmotion(emotion) {
+  const mapped = emotionMap[emotion] || "pop";
+  setStatus(`Emotion: ${emotion} → mood: ${mapped} (fetching song)`);
+  const track = await fetchTrackForMood(mapped);
+
+  if (!track || !track.url) {
+    // Fallback list if none playable
+    const fallback = {
+      party: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+      romantic: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+      rock: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+      pop: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+      upbeat: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
+      instrumental:
+        "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
+      calm: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
+    };
+    await playTrack({ id: mapped, url: fallback[mapped] || fallback.pop });
+  } else {
+    await playTrack(track);
+  }
+  // Stop camera after playing the track
+  stopCamera();
+}
+
+// Single face detection over 4 seconds
+async function detectOnce() {
+  if (!modelsLoaded || !video.srcObject) return false;
+
+  try {
+    const emotions = [];
+    const startTime = Date.now();
+    const duration = 4000; // 4 seconds
+
+    while (Date.now() - startTime < duration) {
+      let detections;
+      if (useTinyFace) {
+        detections = await faceapi
+          .detectAllFaces(
+            video,
+            new faceapi.TinyFaceDetectorOptions({
+              inputSize: 320,
+              scoreThreshold: 0.2,
+            })
+          )
+          .withFaceExpressions();
+      } else {
+        detections = await faceapi
+          .detectAllFaces(
+            video,
+            new faceapi.SsdMobilenetv1Options({ minConfidence: 0.1 })
+          )
+          .withFaceExpressions();
+      }
+
+      const ctx = overlay.getContext("2d");
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+      if (detections.length) {
+        const displaySize = { width: video.width, height: video.height };
+        faceapi.matchDimensions(overlay, displaySize);
+        const resized = faceapi.resizeResults(detections, displaySize);
+        faceapi.draw.drawDetections(overlay, resized);
+        faceapi.draw.drawFaceExpressions(overlay, resized);
+
+        // Pick top probability expression
+        const expr = detections[0].expressions;
+        const top = Object.entries(expr).sort((a, b) => b[1] - a[1])[0][0];
+        emotions.push(top);
+        setStatus(`Detecting emotion... (${top})`);
+      } else {
+        emotions.push("neutral");
+        setStatus("No face detected");
+      }
+
+      // Short delay to prevent overwhelming the CPU
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    // Find the most frequent emotion or use the last one
+    const emotionCounts = emotions.reduce((acc, emo) => {
+      acc[emo] = (acc[emo] || 0) + 1;
+      return acc;
+    }, {});
+    const finalEmotion =
+      Object.entries(emotionCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ||
+      emotions[emotions.length - 1] ||
+      "neutral";
+    currentEmotion = finalEmotion;
+    setStatus(`Emotion: ${finalEmotion}`);
+    return finalEmotion;
+  } catch (err) {
+    console.error("Detection error:", err);
+    setStatus("Detection error. You can still select a test mood.");
+    return false;
+  }
+}
+
+// Init camera & models, detect once, and play song
+async function startAll() {
+  try {
+    setStatus("Loading models...");
+    // backend = CPU is fine for browser build
+    await faceapi.tf.setBackend("cpu");
+    await faceapi.tf.ready();
+
+    // Load models from /models
+    try {
+      await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+      useTinyFace = true;
+    } catch (e) {
+      console.warn("tinyFace load failed, trying ssd:", e.message);
+      await faceapi.nets.ssdMobilenetv1.loadFromUri("/models");
+      useTinyFace = false;
+    }
+    await faceapi.nets.faceExpressionNet.loadFromUri("/models");
+    modelsLoaded = true;
+
+    setStatus("Requesting camera...");
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" },
+      audio: false,
+    });
+    video.srcObject = stream;
+
+    await new Promise((r) => (video.onloadedmetadata = r));
+    await video.play();
+
+    setStatus("Detecting emotion...");
+    const emotion = await detectOnce();
+    if (emotion) {
+      await changeSongForEmotion(emotion);
+    } else {
+      setStatus("Failed to detect emotion. Use Test Mood to play music.");
+      stopCamera();
+    }
+  } catch (err) {
+    console.error("Init error:", err);
+    setStatus("Camera or models failed. Use Test Mood to play music.");
+    stopCamera();
+  }
+}
+
+// Events
+startBtn.addEventListener("click", async () => {
+  await startAll();
+});
+
+changeSongBtn.addEventListener("click", async () => {
+  const mode = testMoodEl.value;
+  if (mode && mode !== "auto") {
+    await changeSongForEmotion(mode);
+  } else {
+    // Restart camera for a single detection
+    setStatus("Requesting camera...");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+        audio: false,
+      });
+      video.srcObject = stream;
+
+      await new Promise((r) => (video.onloadedmetadata = r));
+      await video.play();
+
+      setStatus("Detecting emotion...");
+      const emotion = await detectOnce();
+      if (emotion) {
+        await changeSongForEmotion(emotion);
+      } else {
+        setStatus("Failed to detect emotion. Use Test Mood to play music.");
+        stopCamera();
+      }
+    } catch (err) {
+      console.error("Camera error:", err);
+      setStatus("Camera failed. Use Test Mood to play music.");
+      stopCamera();
+    }
+  }
+});
+
+musicPlayer.addEventListener("play", () => {
+  if (audioCtx?.state === "suspended") {
+    audioCtx.resume();
+  }
+  // Removed startVisualizer call to avoid redundant initialization
+});
+
+musicPlayer.addEventListener("ended", () => {
+  setStatus("Song ended. Click Change Song or select a mood.");
+});
