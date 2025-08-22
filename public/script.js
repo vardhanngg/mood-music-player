@@ -58,7 +58,8 @@ async function playTrack(track) {
 
   try {
     await musicPlayer.play();
-    if (audioCtx?.state === "suspended") {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === "suspended") {
       await audioCtx.resume();
     }
   } catch (err) {
@@ -67,24 +68,27 @@ async function playTrack(track) {
   }
 }
 
+// Fetch track from backend
 async function fetchTrackForMood(mood) {
   try {
     const res = await fetch(`${SONG_BY_MOOD_ENDPOINT}?mood=${encodeURIComponent(mood)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    return data.track;
+    return data; // Return full object with audioUrl
   } catch (err) {
     console.error("songByMood fetch error:", err);
     return null;
   }
 }
 
+// Change song based on emotion/mood
 async function changeSongForEmotion(emotion) {
   const mapped = emotionMap[emotion] || "pop";
   setStatus(`Emotion: ${emotion} → mood: ${mapped} (fetching song)`);
+
   const track = await fetchTrackForMood(mapped);
 
-  if (!track || !track.url) {
+  if (!track || !track.audioUrl) {
     const fallback = {
       party: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
       romantic: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
@@ -96,11 +100,13 @@ async function changeSongForEmotion(emotion) {
     };
     await playTrack({ id: mapped, url: fallback[mapped] || fallback.pop });
   } else {
-    await playTrack(track);
+    await playTrack({ id: track.id, url: track.audioUrl });
   }
+
   stopCamera();
 }
 
+// Detect emotion once
 async function detectOnce() {
   if (!modelsLoaded || !video.srcObject) return false;
 
@@ -159,6 +165,7 @@ async function detectOnce() {
   }
 }
 
+// Initialize everything
 async function startAll() {
   try {
     setStatus("Loading models...");
@@ -198,6 +205,7 @@ async function startAll() {
   }
 }
 
+// Event listeners
 startBtn.addEventListener("click", async () => {
   await startAll();
 });
