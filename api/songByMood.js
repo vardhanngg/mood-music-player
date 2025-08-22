@@ -6,16 +6,19 @@ export default async function handler(req, res) {
     console.log(`[server] Fetching song for mood: ${mood}`);
     const results = await search(mood);
 
-    if (!results.length) {
+    if (!results || !results.length) {
       return res.status(200).json({ track: null });
     }
 
-    const first = results.find(s => Array.isArray(s.downloadUrl) && s.downloadUrl.length) || results[0];
+    const first = results.find(
+      s => Array.isArray(s.downloadUrl) && s.downloadUrl.length
+    ) || results[0];
 
     let streamUrl = null;
     if (Array.isArray(first.downloadUrl) && first.downloadUrl.length) {
-      const sorted = [...first.downloadUrl].sort((a,b)=>
-        parseInt(b.quality||b.bitrate||0,10) - parseInt(a.quality||a.bitrate||0,10)
+      const sorted = [...first.downloadUrl].sort((a, b) =>
+        parseInt(b.quality || b.bitrate || 0, 10) -
+        parseInt(a.quality || a.bitrate || 0, 10)
       );
       streamUrl = sorted[0]?.link || sorted[0]?.url || null;
     }
@@ -24,7 +27,7 @@ export default async function handler(req, res) {
       id: first.id || String(Date.now()),
       title: first.name || "Unknown",
       artists: first.primaryArtists || "",
-      image: first.image?.[2]?.link || null,
+      image: first.image?.[2]?.link || first.image?.[0]?.link || null,
       url: streamUrl,
     };
 
