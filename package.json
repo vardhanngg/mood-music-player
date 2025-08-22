@@ -1,16 +1,23 @@
 {
-  "name": "mood-music-player",
+  "name": "nodejs-sandbox",
   "version": "1.0.0",
-  "private": true,
+  "description": "Node.js example server starter project",
+  "license": "MIT",
+  "main": "index.ts",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+    "start": "nodemon index.ts"
+  },
+  "keywords": [],
+  "author": "Ives van Hoorne",
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.16",
+    "nodemon": "^3.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.3"
   },
   "dependencies": {
-    "axios": "^1.6.8",
-    "next": "13.4.19",       // or your specific Next.js version
-    "react": "18.2.0",       // or your specific React version
-    "react-dom": "18.2.0"
+    "express": "^4.19.2",
+    "axios": "^1.6.8"
   }
 }
