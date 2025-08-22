@@ -12,12 +12,14 @@ export default async function handler(req, res) {
     const searchUrl = `https://jiosaavn-api-ruddy.vercel.app/search/songs?query=${encodeURIComponent(mood)}`;
     const searchRes = await axios.get(searchUrl);
 
-    if (!searchRes.data.data || searchRes.data.data.length === 0) {
+    const songsList = searchRes.data.data;
+    if (!songsList || songsList.length === 0) {
       return res.status(404).json({ error: "No songs found for this mood" });
     }
 
-    // Pick the first song
-    const song = searchRes.data.data[0];
+    // Pick a random song from the results
+    const randomIndex = Math.floor(Math.random() * songsList.length);
+    const song = songsList[randomIndex];
 
     // Step 2 – Fetch detailed info
     const songDetailsUrl = `https://jiosaavn-api-ruddy.vercel.app/songs?id=${song.id}`;
@@ -36,7 +38,7 @@ export default async function handler(req, res) {
       id: songDetails.id,
       title: songDetails.name,
       artist: songDetails.primaryArtists,
-      image: songDetails.image?.slice(-1)[0]?.link, // highest res image
+      image: songDetails.image?.slice(-1)[0]?.link,
       audioUrl
     });
 
