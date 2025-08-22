@@ -10,6 +10,8 @@ const testMoodEl = document.getElementById("testMood");
 
 let audioCtx;
 let currentEmotion = null;
+let currentTrackId = null;
+let useTinyFace = true;
 let modelsLoaded = false;
 
 // Map face emotion → mood for music search
@@ -40,81 +42,83 @@ function stopCamera() {
 
 async function playTrack(track) {
   if (!track?.url) {
-    setStatus("No playable song. Try again.");
-    log("No playable URL for track:", track);
+    setStatus("No playable URL. Try again.");
     return;
   }
-  log("Playing track:", track.title, track.url);
-  musicPlayer.src = track.url; // Always set new song
-  musicPlayer.load(); // Force reload
-  try {
-    await musicPlayer.play();
-    setStatus(`Playing: ${track.title || 'Song'}`);
-  } catch (err) {
-    log("Autoplay error:", err.message);
-    setStatus("Click the Play button to start audio.");
+
+  // Always update the currentTrackId to force the player to reload the track
+  currentTrackId = track.id || track.url;
+
+  // Check if the track is already playing
+  if (musicPlayer.src !== track.url || musicPlayer.paused) {
+    musicPlayer.src = track.url;
+    try {
+      await musicPlayer.play();
+      if (audioCtx?.state === "suspended") {
+        await audioCtx.resume();
+      }
+    } catch (err) {
+      console.warn("Autoplay blocked, waiting for user gesture.", err.message);
+      setStatus("Tap the Play button to start audio.");
+    }
   }
 }
 
+
 async function fetchTrackForMood(mood) {
   try {
-    log("Fetching song for mood:", mood);
     const res = await fetch(`${SONG_BY_MOOD_ENDPOINT}?mood=${encodeURIComponent(mood)}`);
-    if (!res.ok) {
-      log("API error, status:", res.status);
-      throw new Error(`HTTP ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    log("API response:", data);
-    return data.track;
+    return data.track; // <-- must match backend response
   } catch (err) {
-    log("fetchTrackForMood error:", err.message);
+    console.error("songByMood fetch error:", err);
     return null;
   }
 }
 
+
+
+
+// Change song based on emotion/mood
 async function changeSongForEmotion(emotion) {
   const mapped = emotionMap[emotion] || "pop";
   setStatus(`Emotion: ${emotion} → mood: ${mapped} (fetching song)`);
-  log("Changing song for emotion:", emotion, "mapped to:", mapped);
 
   const track = await fetchTrackForMood(mapped);
 
-  if (!track || !track.url) {
-    log("API failed, using fallback for mood:", mapped);
+  if (!track || !track.audioUrl) {
     const fallback = {
-      party: { id: "party", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", title: "Party Song" },
-      romantic: { id: "romantic", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", title: "Romantic Song" },
-      rock: { id: "rock", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3", title: "Rock Song" },
-      pop: { id: "pop", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3", title: "Pop Song" },
-      upbeat: { id: "upbeat", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3", title: "Upbeat Song" },
-      instrumental: { id: "instrumental", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3", title: "Instrumental Song" },
-      calm: { id: "calm", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3", title: "Calm Song" },
+      party: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+      romantic: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+      rock: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+      pop: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+      upbeat: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
+      instrumental: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
+      calm: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
     };
-    await playTrack(fallback[mapped] || fallback.pop);
+    await playTrack({ id: mapped, url: fallback[mapped] || fallback.pop });
   } else {
-    await playTrack(track);
+    await playTrack({ id: track.id, url: track.audioUrl });
   }
 
   stopCamera();
 }
 
+// Detect emotion once
 async function detectOnce() {
-  if (!modelsLoaded || !video.srcObject) {
-    log("Models or video not ready");
-    return false;
-  }
+  if (!modelsLoaded || !video.srcObject) return false;
 
   try {
     const emotions = [];
     const startTime = Date.now();
-    const duration = 10000; // 10 seconds for better detection
+    const duration = 6000;
 
     while (Date.now() - startTime < duration) {
       let detections;
       if (useTinyFace) {
         detections = await faceapi
-          .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 }))
+          .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.2 }))
           .withFaceExpressions();
       } else {
         detections = await faceapi
@@ -144,7 +148,6 @@ async function detectOnce() {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    log("Detected emotions:", emotions);
     const emotionCounts = emotions.reduce((acc, emo) => {
       acc[emo] = (acc[emo] || 0) + 1;
       return acc;
@@ -153,15 +156,15 @@ async function detectOnce() {
                          emotions[emotions.length - 1] || "neutral";
     currentEmotion = finalEmotion;
     setStatus(`Emotion: ${finalEmotion}`);
-    log("Final emotion:", finalEmotion);
     return finalEmotion;
   } catch (err) {
-    log("Detection error:", err.message);
+    console.error("Detection error:", err);
     setStatus("Detection error. You can still select a test mood.");
     return false;
   }
 }
 
+// Initialize everything
 async function startAll() {
   try {
     setStatus("Loading models...");
@@ -172,7 +175,7 @@ async function startAll() {
       await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
       useTinyFace = true;
     } catch (e) {
-      log("tinyFace load failed, trying ssd:", e.message);
+      console.warn("tinyFace load failed, trying ssd:", e.message);
       await faceapi.nets.ssdMobilenetv1.loadFromUri("/models");
       useTinyFace = false;
     }
@@ -195,12 +198,13 @@ async function startAll() {
       stopCamera();
     }
   } catch (err) {
-    log("Init error:", err.message);
+    console.error("Init error:", err);
     setStatus("Camera or models failed. Use Test Mood to play music.");
     stopCamera();
   }
 }
 
+// Event listeners
 startBtn.addEventListener("click", async () => {
   await startAll();
 });
@@ -227,7 +231,7 @@ changeSongBtn.addEventListener("click", async () => {
         stopCamera();
       }
     } catch (err) {
-      log("Camera error:", err.message);
+      console.error("Camera error:", err);
       setStatus("Camera failed. Use Test Mood to play music.");
       stopCamera();
     }
