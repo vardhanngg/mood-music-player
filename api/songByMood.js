@@ -4,17 +4,29 @@ export default async function handler(req, res) {
   try {
     const { mood } = req.query;
     if (!mood) {
-      console.error("[songByMood] Mood is required");
+      console.error("[songByMood] Error: Mood is required");
       return res.status(400).json({ error: "Mood is required" });
     }
 
-    console.log("[songByMood] Fetching songs for mood:", mood);
-    const searchUrl = `https://jiosaavn-api-ruddy.vercel.app/search/songs?query=${encodeURIComponent(mood)}`;
+    console.log("[songByMood] Searching for mood:", mood);
+    // Try specific queries to improve song variety
+    const moodQueries = {
+      party: "party dance",
+      romantic: "romantic ballad",
+      rock: "rock hits",
+      pop: "pop hits",
+      upbeat: "upbeat dance",
+      instrumental: "instrumental music",
+      calm: "calm relaxing"
+    };
+    const query = moodQueries[mood] || mood;
+    const searchUrl = `https://jiosaavn-api-ruddy.vercel.app/search/songs?query=${encodeURIComponent(query)}`;
+    console.log("[songByMood] API URL:", searchUrl);
     const searchRes = await axios.get(searchUrl);
     const songsList = searchRes.data?.data || [];
 
     if (songsList.length === 0) {
-      console.warn("[songByMood] No songs found for mood:", mood);
+      console.warn("[songByMood] No songs found for query:", query);
       return res.status(404).json({ error: "No songs found for this mood" });
     }
 
@@ -31,7 +43,7 @@ export default async function handler(req, res) {
     req.session.previousSongId = song.id; // Store for next call
 
     if (!song?.id) {
-      console.warn("[songByMood] Song ID missing for mood:", mood);
+      console.warn("[songByMood] Song ID missing for query:", query);
       return res.status(500).json({ error: "Song ID missing" });
     }
 
@@ -51,7 +63,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Playable link not found" });
     }
 
-    console.log("[songByMood] Success - Track:", songDetails.name);
+    console.log("[songByMood] Success - Track:", songDetails.name, "URL:", audioUrl);
     res.status(200).json({
       track: {
         id: songDetails.id,
