@@ -74,7 +74,7 @@ async function fetchTrackForMood(mood) {
 
 
 // Change song based on emotion/mood
-async function changeSongForEmotion(emotion) {
+async function changeSongForEmotion(emotion) { 
   const mapped = emotionMap[emotion] || "pop";
   setStatus(`Emotion: ${emotion} → mood: ${mapped} (fetching song)`);
 
