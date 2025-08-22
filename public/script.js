@@ -65,6 +65,7 @@ async function playTrack(track) {
 }
 
 
+
 async function fetchTrackForMood(mood) {
   try {
     const res = await fetch(`${SONG_BY_MOOD_ENDPOINT}?mood=${encodeURIComponent(mood)}`);
