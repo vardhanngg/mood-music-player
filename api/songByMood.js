@@ -13,7 +13,16 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: "No songs found for this mood" });
     }
 
-    const song = songsList[Math.floor(Math.random() * songsList.length)];
+   let previousSongId = null; // Store the last played song ID
+let song = songsList[Math.floor(Math.random() * songsList.length)];
+// Try to avoid the last song
+if (previousSongId && songsList.length > 1) {
+  const filteredSongs = songsList.filter(s => s.id !== previousSongId);
+  if (filteredSongs.length > 0) {
+    song = filteredSongs[Math.floor(Math.random() * filteredSongs.length)];
+  }
+}
+previousSongId = song.id; // Update the last played song ID
     if (!song?.id) return res.status(500).json({ error: "Song ID not found" });
 
     const songDetailsUrl = `https://jiosaavn-api-ruddy.vercel.app/songs?id=${song.id}`;
