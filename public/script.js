@@ -70,12 +70,13 @@ async function fetchTrackForMood(mood) {
     const res = await fetch(`${SONG_BY_MOOD_ENDPOINT}?mood=${encodeURIComponent(mood)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    return data; // <-- use the root object, not data.track
+    return data.track; // <-- must match backend response
   } catch (err) {
     console.error("songByMood fetch error:", err);
     return null;
   }
 }
+
 
 
 
