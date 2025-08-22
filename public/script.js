@@ -65,19 +65,13 @@ async function fetchTrackForMood(mood) {
     const res = await fetch(`${SONG_BY_MOOD_ENDPOINT}?mood=${encodeURIComponent(mood)}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    // Backend returns { audioUrl, title, id, artist, image }
-    return {
-      url: data.audioUrl,
-      id: data.id,
-      title: data.title,
-      artist: data.artist,
-      image: data.image,
-    };
+    return data; // <-- use the root object, not data.track
   } catch (err) {
     console.error("songByMood fetch error:", err);
     return null;
   }
 }
+
 
 
 // Change song based on emotion/mood
