@@ -45,20 +45,14 @@ async function playTrack(track) {
     setStatus("No playable URL. Try again.");
     return;
   }
-  // Always update the currentTrackId to force the player to reload the track
-  currentTrackId = track.id || track.url;
-  // Check if the track is already playing
-  if (musicPlayer.src !== track.url || musicPlayer.paused) {
-    musicPlayer.src = track.url;
-    try {
-      await musicPlayer.play();
-      if (audioCtx?.state === "suspended") {
-        await audioCtx.resume();
-      }
-    } catch (err) {
-      console.warn("Autoplay blocked, waiting for user gesture.", err.message);
-      setStatus("Tap the Play button to start audio.");
-    }
+  const musicPlayer = document.getElementById("musicPlayer");
+  musicPlayer.src = track.url; // Always set new song
+  try {
+    await musicPlayer.play();
+    setStatus(`Playing: ${track.title || 'Song'}`);
+  } catch (err) {
+    console.warn("Autoplay error:", err.message);
+    setStatus("Click the Play button to start audio.");
   }
 }
 
