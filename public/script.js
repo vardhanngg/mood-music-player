@@ -41,28 +41,22 @@ function stopCamera() {
 }
 
 async function playTrack(track) {
-  if (!track?.url) {
-    setStatus("No playable URL. Try again.");
-    return;
-  }
+  if (!track?.url) return setStatus("No playable URL. Try again.");
 
   musicPlayer.pause();
   musicPlayer.src = "";
   musicPlayer.load();
 
-  // Use URL as unique identifier
-  currentTrackId = track.url;
+  currentTrackId = track.url; // use URL as unique identifier
   musicPlayer.src = track.url;
 
   try {
     await musicPlayer.play();
     if (!audioCtx) audioCtx = new AudioContext();
-    if (audioCtx.state === "suspended") {
-      await audioCtx.resume();
-    }
+    if (audioCtx.state === "suspended") await audioCtx.resume();
   } catch (err) {
-    console.warn("Autoplay blocked, waiting for user gesture.", err.message);
-    setStatus("Tap the Play button to start audio.");
+    console.warn("Autoplay blocked:", err.message);
+    setStatus("Tap Play button to start audio.");
   }
 }
 
