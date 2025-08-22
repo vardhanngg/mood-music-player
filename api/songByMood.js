@@ -43,7 +43,7 @@ export default async function handler(req, res) {
         title: songDetails.name,
         artist: songDetails.primaryArtists,
         image: songDetails.image?.slice(-1)[0]?.link,
-        url: audioUrl,
+        audioUrl: audioUrl,
       },
     });
   } catch (err) {
