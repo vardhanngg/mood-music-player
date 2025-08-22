@@ -1,40 +1,43 @@
-const { search } = require("jiosaavn-api");
+import axios from "axios";
 
 export default async function handler(req, res) {
-  const mood = req.query.mood || "pop";
   try {
-    console.log(`[server] Fetching song for mood: ${mood}`);
-    const results = await search(mood);
+    const { mood } = req.query;
 
-    if (!results || !results.length) {
-      return res.status(200).json({ track: null });
+    // Step 1 – Search songs by mood using JioSaavn API
+    const searchUrl = `https://jiosaavn-api-ruddy.vercel.app/search/songs?query=${encodeURIComponent(mood)}`;
+    const searchRes = await axios.get(searchUrl);
+
+    if (!searchRes.data.data || searchRes.data.data.length === 0) {
+      return res.status(404).json({ error: "No songs found for this mood" });
     }
 
-    const first = results.find(
-      s => Array.isArray(s.downloadUrl) && s.downloadUrl.length
-    ) || results[0];
+    // Step 2 – Pick the first song
+    const song = searchRes.data.data[0];
 
-    let streamUrl = null;
-    if (Array.isArray(first.downloadUrl) && first.downloadUrl.length) {
-      const sorted = [...first.downloadUrl].sort((a, b) =>
-        parseInt(b.quality || b.bitrate || 0, 10) -
-        parseInt(a.quality || a.bitrate || 0, 10)
-      );
-      streamUrl = sorted[0]?.link || sorted[0]?.url || null;
+    // Step 3 – Fetch detailed info to get playable link
+    const songDetailsUrl = `https://jiosaavn-api-ruddy.vercel.app/songs?id=${song.id}`;
+    const songDetailsRes = await axios.get(songDetailsUrl);
+    const songDetails = songDetailsRes.data.data[0];
+
+    // Step 4 – Get highest quality link
+    const audioUrl =
+      songDetails.downloadUrl?.[songDetails.downloadUrl.length - 1]?.link || null;
+
+    if (!audioUrl) {
+      return res.status(500).json({ error: "Failed to fetch playable link" });
     }
 
-    const track = {
-      id: first.id || String(Date.now()),
-      title: first.name || "Unknown",
-      artists: first.primaryArtists || "",
-      image: first.image?.[2]?.link || first.image?.[0]?.link || null,
-      url: streamUrl,
-    };
+    res.status(200).json({
+      id: songDetails.id,
+      title: songDetails.name,
+      artist: songDetails.primaryArtists,
+      image: songDetails.image?.[2]?.link,
+      audioUrl: audioUrl
+    });
 
-    console.log(`[server] Returning track: ${track.title}, url: ${track.url}`);
-    res.status(200).json({ track });
-  } catch (err) {
-    console.error(`[server] songByMood error: ${err.message}`);
-    res.status(500).json({ error: "songByMood failed" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error fetching song" });
   }
 }
