@@ -41,24 +41,29 @@ function stopCamera() {
 }
 
 async function playTrack(track) {
-  if (!track?.url) return setStatus("No playable URL. Try again.");
+  if (!track?.url) {
+    setStatus("No playable URL. Try again.");
+    return;
+  }
 
-  musicPlayer.pause();
-  musicPlayer.src = "";
-  musicPlayer.load();
+  // Always update the currentTrackId to force the player to reload the track
+  currentTrackId = track.id || track.url;
 
-  currentTrackId = track.url; // use URL as unique identifier
-  musicPlayer.src = track.url;
-
-  try {
-    await musicPlayer.play();
-    if (!audioCtx) audioCtx = new AudioContext();
-    if (audioCtx.state === "suspended") await audioCtx.resume();
-  } catch (err) {
-    console.warn("Autoplay blocked:", err.message);
-    setStatus("Tap Play button to start audio.");
+  // Check if the track is already playing
+  if (musicPlayer.src !== track.url || musicPlayer.paused) {
+    musicPlayer.src = track.url;
+    try {
+      await musicPlayer.play();
+      if (audioCtx?.state === "suspended") {
+        await audioCtx.resume();
+      }
+    } catch (err) {
+      console.warn("Autoplay blocked, waiting for user gesture.", err.message);
+      setStatus("Tap the Play button to start audio.");
+    }
   }
 }
+
 
 async function fetchTrackForMood(mood) {
   try {
