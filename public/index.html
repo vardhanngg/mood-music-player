@@ -6,7 +6,112 @@
   <title>Vibron Music</title>
   <link rel="icon" type="image/x-icon" href="v.ico" />
   <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.go<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vibron Music</title>
+  <link rel="icon" type="image/x-icon" href="v.ico" />
+  <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="main-container" id="mood-container">
+    <!-- Particle Background for Mind-Blowing Effects -->
+    <div class="particle-bg"></div>
+
+    <!-- Header -->
+    <header class="header">
+      <img src="v.ico" alt="Vibron Logo" class="logo animate-pulse-slow" />
+      <span class="brand-name">Vibron</span>
+    </header>
+
+    <!-- Title -->
+    <h1 class="app-title animate-glow">🌟 VibeSync: Mood Magic 🌟</h1>
+
+    <!-- Start Button -->
+    <button class="btn primary-btn animate-bounce-subtle" id="startBtn">
+      <span class="btn-icon">🎥</span> Ignite Your Vibe
+    </button>
+
+    <!-- Camera Stage -->
+    <div class="stage animate-border-pulse">
+      <video id="video" autoplay muted playsinline></video>
+      <canvas id="overlay"></canvas>
+      <div class="stage-overlay"></div>
+    </div>
+
+    <!-- Emotion Display -->
+    <div class="emotion animate-fade-in" id="emotion-display">Unlock Your Mood Universe!</div>
+
+    <!-- Controls -->
+    <div class="control-panel">
+      <div class="button-group">
+        <button class="btn secondary-btn animate-hover-lift" id="prevSongBtn">
+          <span class="btn-icon">⏮</span> Backtrack
+        </button>
+        <button class="btn secondary-btn animate-hover-lift" id="changeSongBtn">
+          <span class="btn-icon">🔄</span> Shift Tune
+        </button>
+      </div>
+      <div class="selector">
+        <label for="testMood" class="selector-label">🎭 Mood Portal</label>
+        <select id="testMood" class="animate-select-glow">
+          <option value="auto">Auto (Face Portal)</option>
+          <option value="happy">Happy → Cosmic Party</option>
+          <option value="sad">Sad → Ethereal Blues</option>
+          <option value="angry">Angry → Fiery Riffs</option>
+          <option value="neutral">Neutral → Serene Waves</option>
+          <option value="surprised">Surprised → Electric Surges</option>
+          <option value="disgusted">Disgusted → Mystic Chills</option>
+          <option value="fearful">Fearful → Whispering Romances</option>
+        </select>
+      </div>
+      <div class="selector">
+        <label for="languageSelect" class="selector-label">🌍 Linguistic Realm</label>
+        <select id="languageSelect" class="animate-select-glow">
+          <option value="english">English</option>
+          <option value="hindi">Hindi</option>
+          <option value="kannada">Kannada</option>
+          <option value="malayalam">Malayalam</option>
+          <option value="marathi">Marathi</option>
+          <option value="punjabi">Punjabi</option>
+          <option value="tamil">Tamil</option>
+          <option value="telugu">Telugu</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Audio Player -->
+    <audio id="musicPlayer" controls class="animate-audio-wave"></audio>
+
+    <!-- Hint -->
+    <div class="hint animate-text-shimmer">
+      🔮 Dive into manual moods if the face portal falters.
+    </div>
+
+    <!-- Visualizer -->
+    <canvas id="visualizer" class="animate-visualizer-beat"></canvas>
+  </div>
+
+  <!-- TensorFlow.js v1.7.4 -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js"></script>
+  <script>console.log('TensorFlow.js v1.7.4 loaded for face-api.js compatibility');</script>
+
+  <!-- face-api.js v0.22.2 -->
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+  <!-- Custom Logic -->
+  <script src="script.js"></script>
+
+  <!-- Inline JS for Mood-Based Animations (Assume script.js sets data-mood attribute on #mood-container) -->
+  <script>
+    // Example: In script.js, when mood is detected: document.getElementById('mood-container').dataset.mood = detectedMood;
+    // Particle effects can be enhanced with libraries, but here using pure CSS for simplicity.
+  </script>
+</body>
+</html>ogleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
   <div class="main-container">
