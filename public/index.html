@@ -5,7 +5,149 @@
   <link rel="icon" type="image/x-icon" href="v.ico" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title> Vibron </title>
+  <title> Vibron </title><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vibron - Mood Music</title>
+  <link rel="icon" type="image/x-icon" href="v.ico" />
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="bg-animation" id="bg-animation"></div>
+  <div class="container" id="mood-container">
+    <!-- Branding -->
+    <header class="branding animate-pulse-glow">
+      <img src="v.ico" alt="Vibron Logo" class="logo" />
+      <span class="brand-name">Vibron</span>
+    </header>
+
+    <!-- Title -->
+    <h1 class="title animate-text-neon">🌿 VibeSync: Feel the Serenity 🌿</h1>
+
+    <!-- Start Button -->
+    <button class="btn primary animate-btn-bounce" id="startBtn">
+      <span class="btn-icon">🚀</span> Begin Your Journey
+    </button>
+
+    <!-- Camera Stage -->
+    <div class="stage glass-panel animate-stage-pulse">
+      <video id="video" autoplay muted playsinline></video>
+      <canvas id="overlay"></canvas>
+      <div class="stage-overlay"></div>
+    </div>
+
+    <!-- Emotion Display -->
+    <div class="emotion-display glass-panel animate-emotion-pop" id="emotion-display">Sync Your Vibe!</div>
+
+    <!-- Controls -->
+    <div class="controls glass-panel">
+      <div class="btn-group">
+        <button class="btn secondary animate-btn-hover" id="prevSongBtn">
+          <span class="btn-icon">⏮</span> Rewind
+        </button>
+        <button class="btn secondary animate-btn-hover" id="changeSongBtn">
+          <span class="btn-icon">🔄</span> Switch Vibe
+        </button>
+      </div>
+
+      <div class="select-group">
+        <label for="testMood" class="select-label">🎭 Mood Portal:</label>
+        <select id="testMood" class="animate-select-shimmer">
+          <option value="auto">Auto (Face Scan)</option>
+          <option value="happy">Happy → Cosmic Party</option>
+          <option value="sad">Sad → Soulful Echoes</option>
+          <option value="angry">Angry → Fiery Beats</option>
+          <option value="neutral">Neutral → Dreamy Love</option>
+          <option value="surprised">Surprised → Electric Hits</option>
+          <option value="disgusted">Disgusted → Mystic Chills</option>
+          <option value="fearful">Fearful → Romantic Whispers</option>
+        </select>
+      </div>
+
+      <div class="select-group">
+        <label for="languageSelect" class="select-label">🌍 Language Realm:</label>
+        <select id="languageSelect" class="animate-select-shimmer">
+          <option value="english">English</option>
+          <option value="hindi">Hindi</option>
+          <option value="kannada">Kannada</option>
+          <option value="malayalam">Malayalam</option>
+          <option value="marathi">Marathi</option>
+          <option value="punjabi">Punjabi</option>
+          <option value="tamil">Tamil</option>
+          <option value="telugu">Telugu</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Music Player -->
+    <audio id="musicPlayer" controls class="animate-audio-glow"></audio>
+
+    <!-- Hint -->
+    <div class="hint glass-panel animate-hint-shimmer">
+      ✨ Choose a mood manually if the face scan isn’t vibing.
+    </div>
+
+    <!-- Visualizer -->
+    <canvas id="visualizer" class="animate-visualizer-beat"></canvas>
+
+    <!-- Mood Pop-up Modal -->
+    <div class="mood-popup" id="mood-popup" style="display: none;">
+      <div class="mood-popup-content animate-popup-fade">
+        <h2 class="popup-title">Why are you in this calm mood?</h2>
+        <textarea id="mood-reason" placeholder="Share your thoughts..."></textarea>
+        <div class="popup-btn-group">
+          <button class="btn popup-btn" id="submitMoodBtn">Submit</button>
+          <button class="btn popup-btn" id="closeMoodBtn">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js"></script>
+  <script>console.log('Using TensorFlow.js v1.7.4 for face-api.js compatibility');</script>
+
+  <!-- face-api.js -->
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+  <!-- Main Script -->
+  <script src="script.js"></script>
+
+  <!-- Inline Script for Pop-up Control -->
+  <script>
+    // Note: Assumes script.js sets data-mood="neutral" on #mood-container when calm mood is detected
+    const moodContainer = document.getElementById('mood-container');
+    const moodPopup = document.getElementById('mood-popup');
+    const closeMoodBtn = document.getElementById('closeMoodBtn');
+    const submitMoodBtn = document.getElementById('submitMoodBtn');
+
+    // Watch for mood changes
+    const observer = new MutationObserver(() => {
+      if (moodContainer.dataset.mood === 'neutral') {
+        moodPopup.style.display = 'flex';
+      } else {
+        moodPopup.style.display = 'none';
+      }
+    });
+    observer.observe(moodContainer, { attributes: true, attributeFilter: ['data-mood'] });
+
+    // Close pop-up
+    closeMoodBtn?.addEventListener('click', () => {
+      moodPopup.style.display = 'none';
+    });
+
+    // Submit pop-up (placeholder for actual functionality in script.js)
+    submitMoodBtn?.addEventListener('click', () => {
+      const reason = document.getElementById('mood-reason').value;
+      console.log('Mood reason:', reason); // Handle in script.js
+      moodPopup.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
