@@ -3,66 +3,63 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vibron - Mood Music</title>
+  <title>Vibron Music</title>
   <link rel="icon" type="image/x-icon" href="v.ico" />
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <div class="bg-animation" id="bg-animation"></div>
-  <div class="container" id="mood-container">
-    <!-- Branding -->
-    <header class="branding animate-pulse-glow">
+  <div class="main-container">
+    <!-- Header -->
+    <header class="header">
       <img src="v.ico" alt="Vibron Logo" class="logo" />
       <span class="brand-name">Vibron</span>
     </header>
 
     <!-- Title -->
-    <h1 class="title animate-text-neon">🌌 MoodVibe Music 🌌</h1>
+    <h1 class="app-title">🎵 Feel the Vibe 🎵</h1>
 
     <!-- Start Button -->
-    <button class="btn primary animate-btn-bounce" id="startBtn">
-      <span class="btn-icon">🚀</span> Launch Your Vibe
+    <button class="btn primary-btn" id="startBtn">
+      <span class="btn-icon">🎥</span> Start the Experience
     </button>
 
     <!-- Camera Stage -->
-    <div class="stage glass-panel animate-stage-pulse">
+    <div class="stage">
       <video id="video" autoplay muted playsinline></video>
       <canvas id="overlay"></canvas>
       <div class="stage-overlay"></div>
     </div>
 
     <!-- Emotion Display -->
-    <div class="emotion-display glass-panel animate-emotion-pop" id="emotion-display">Sync Your Mood!</div>
+    <div class="emotion" id="emotion-display">Let’s Match Your Mood!</div>
 
     <!-- Controls -->
-    <div class="controls glass-panel">
-      <div class="btn-group">
-        <button class="btn secondary animate-btn-hover" id="prevSongBtn">
-          <span class="btn-icon">⏮</span> Rewind
+    <div class="control-panel">
+      <div class="button-group">
+        <button class="btn secondary-btn" id="prevSongBtn">
+          <span class="btn-icon">⏮</span> Previous
         </button>
-        <button class="btn secondary animate-btn-hover" id="changeSongBtn">
-          <span class="btn-icon">🔄</span> Switch Vibe
+        <button class="btn secondary-btn" id="changeSongBtn">
+          <span class="btn-icon">🔄</span> Next Song
         </button>
       </div>
-
-      <div class="select-group">
-        <label for="testMood" class="select-label">🎭 Mood Portal:</label>
-        <select id="testMood" class="animate-select-shimmer">
-          <option value="auto">Auto (Face Scan)</option>
-          <option value="happy">Happy → Cosmic Party</option>
-          <option value="sad">Sad → Soulful Echoes</option>
-          <option value="angry">Angry → Fiery Beats</option>
-          <option value="neutral">Neutral → Dreamy Love</option>
-          <option value="surprised">Surprised → Electric Hits</option>
-          <option value="disgusted">Disgusted → Mystic Chills</option>
-          <option value="fearful">Fearful → Romantic Whispers</option>
+      <div class="selector">
+        <label for="testMood" class="selector-label">🎭 Choose Mood</label>
+        <select id="testMood">
+          <option value="auto">Auto (Face Detection)</option>
+          <option value="happy">Happy → Party Vibes</option>
+          <option value="sad">Sad → Soulful Tunes</option>
+          <option value="angry">Angry → High Energy</option>
+          <option value="neutral">Neutral → Love Songs</option>
+          <option value="surprised">Surprised → Upbeat Hits</option>
+          <option value="disgusted">Disgusted → Chill Instrumentals</option>
+          <option value="fearful">Fearful → Romantic Melodies</option>
         </select>
       </div>
-
-      <div class="select-group">
-        <label for="languageSelect" class="select-label">🌍 Language Realm:</label>
-        <select id="languageSelect" class="animate-select-shimmer">
+      <div class="selector">
+        <label for="languageSelect" class="selector-label">🌍 Language</label>
+        <select id="languageSelect">
           <option value="english">English</option>
           <option value="hindi">Hindi</option>
           <option value="kannada">Kannada</option>
@@ -75,26 +72,26 @@
       </div>
     </div>
 
-    <!-- Music Player -->
-    <audio id="musicPlayer" controls class="animate-audio-glow"></audio>
+    <!-- Audio Player -->
+    <audio id="musicPlayer" controls></audio>
 
     <!-- Hint -->
-    <div class="hint glass-panel animate-hint-shimmer">
-      ✨ Choose a mood manually if the face scan isn’t vibing.
+    <div class="hint">
+      ✨ Pick a mood manually if camera detection isn’t available.
     </div>
 
     <!-- Visualizer -->
-    <canvas id="visualizer" class="animate-visualizer-beat"></canvas>
+    <canvas id="visualizer"></canvas>
   </div>
 
-  <!-- TensorFlow.js -->
+  <!-- TensorFlow.js v1.7.4 -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js"></script>
-  <script>console.log('Using TensorFlow.js v1.7.4 for face-api.js compatibility');</script>
+  <script>console.log('TensorFlow.js v1.7.4 loaded for face-api.js compatibility');</script>
 
-  <!-- face-api.js -->
+  <!-- face-api.js v0.22.2 -->
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 
-  <!-- Main Script -->
+  <!-- Custom Logic -->
   <script src="script.js"></script>
 </body>
 </html>
